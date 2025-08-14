@@ -27,4 +27,11 @@ runs:
           sudo apt-get install -y libc6:i386 libstdc++6:i386
         fi
       shell: bash
-    
+
+    - name: Install libssl-dev (if needed)
+      run: |
+        if [[ $RUNNER_OS == "Linux" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev
+        fi
+      shell: bash
