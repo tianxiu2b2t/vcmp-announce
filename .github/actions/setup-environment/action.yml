@@ -19,25 +19,34 @@ runs:
       run: |
         if [[ $RUNNER_OS == "Windows" ]]; then
           rustup target add i686-pc-windows-msvc
-          # Windows x86的OpenSSL通常通过vcpkg或手动安装，这里假设使用静态链接
         elif [[ $RUNNER_OS == "Linux" ]]; then
           rustup target add i686-unknown-linux-gnu
           
-          # 启用32位架构支持
+          # Enable 32-bit architecture support
           sudo dpkg --add-architecture i386
           sudo apt-get update -y
           
-          # 安装必要的32位系统库和SSL开发库
+          # Install cross-compilation tools and 32-bit libraries
           sudo apt-get install -y \
             libc6:i386 \
             libstdc++6:i386 \
             libssl-dev:i386 \
             zlib1g-dev:i386 \
-            pkg-config:i386
-            
-          # 确保pkg-config能找到32位库
-          export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig"
+            pkg-config \
+            pkg-config:i386 \
+            gcc-multilib \
+            libc6-dev-i386 \
+            i686-linux-gnu-gcc
+
+          # Configure pkg-config for cross-compilation
+          echo "PKG_CONFIG=i686-linux-gnu-pkg-config" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/i686-linux-gnu" >> $GITHUB_ENV
           echo "PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          
+          # Explicitly set OpenSSL paths for cross-compilation
+          echo "OPENSSL_DIR=/usr/lib/i386-linux-gnu" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include/i386-linux-gnu/openssl" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=/usr/lib/i386-linux-gnu" >> $GITHUB_ENV
         fi
       shell: bash
 
@@ -46,7 +55,7 @@ runs:
       run: |
         if [[ $RUNNER_OS == "Linux" ]]; then
           sudo apt-get update -y
-          sudo apt-get install -y libssl-dev zlib1g-dev
+          sudo apt-get install -y libssl-dev zlib1g-dev pkg-config
         fi
       shell: bash
     
