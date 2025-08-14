@@ -1,3 +1,4 @@
 /target
 .lh
 logs
+config.toml
