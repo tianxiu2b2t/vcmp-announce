@@ -1,0 +1,86 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build_and_upload:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+        arch: ['x64', 'x86']  # 同时构建x64和x86
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Libraries
+        id: build
+        uses: ./.github/actions/build-libraries
+        with:
+          os: ${{ matrix.os }}
+          architecture: ${{ matrix.arch }}
+
+
+  release_and_publish:
+    runs-on: ubuntu-latest
+    needs: build_and_upload
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set release version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      # 下载所有架构的产物
+      - name: Download Windows x64 Libraries
+        uses: ./.github/actions/download-libraries
+        with:
+          artifacts: libraries_windows-latest_x64
+          output_target: libraries
+
+      - name: Download Windows x86 Libraries
+        uses: ./.github/actions/download-libraries
+        with:
+          artifacts: libraries_windows-latest_x86
+          output_target: libraries
+
+      - name: Download Linux x64 Libraries
+        uses: ./.github/actions/download-libraries
+        with:
+          artifacts: libraries_ubuntu-22.04_x64
+          output_target: libraries
+
+      - name: Download Linux x86 Libraries
+        uses: ./.github/actions/download-libraries
+        with:
+          artifacts: libraries_ubuntu-22.04_x86
+          output_target: libraries
+
+      - name: List all downloaded libraries
+        run: ls -l ./libraries
+        shell: bash
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+
+      - name: Create release
+        run: npx changelogithub-chinese
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Upload Libraries to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./libraries/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    

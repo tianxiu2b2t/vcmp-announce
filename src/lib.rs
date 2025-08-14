@@ -44,10 +44,10 @@ extern "C" fn VcmpPluginInit(
 
     let _ = set_plugin_name("vcmp-announce", info);
     // check announce toml
-    if !std::fs::exists("announce.toml") {
+    if !std::fs::exists("announce.toml").unwrap_or_default() {
         let cfg = cfg::Config::default();
         let content = toml::to_string_pretty(&cfg).unwrap();
-        std::fs::write(config_path, content).unwrap();
+        std::fs::write("announce.toml", content).unwrap();
     }
     load_config("announce.toml");
     init();

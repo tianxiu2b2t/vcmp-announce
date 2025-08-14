@@ -1,0 +1,50 @@
+name: Build Libraries
+description: Build Libraries
+
+inputs:
+  os:
+    description: OS Version
+    required: true
+  architecture:
+    description: CPU architecture (x86 or x64)
+    required: false
+    default: "x64"
+  
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Environment
+      uses: ./.github/actions/setup-environment
+      with:
+        architecture: ${{ inputs.architecture }}
+        
+    - name: Build for x64
+      if: inputs.architecture == 'x64'
+      run: cargo build --release
+      shell: bash
+
+    - name: Build for x86
+      if: inputs.architecture == 'x86'
+      run: |
+        if [[ ${{ inputs.os }} == *"windows"* ]]; then
+          cargo build --release --target i686-pc-windows-msvc
+        else
+          cargo build --release --target i686-unknown-linux-gnu
+        fi
+      shell: bash
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: libraries_${{ inputs.os }}_${{ inputs.architecture }}
+        path: |
+          ${{ inputs.architecture == 'x64' && 'target/release/*.dll' || 'target/i686-pc-windows-msvc/release/*.dll' }}
+          ${{ inputs.architecture == 'x64' && 'target/release/*.so' || 'target/i686-unknown-linux-gnu/release/*.so' }}
+          
+
+    - name: Output artifact name
+      id: output
+      run: echo "artifact_name=libraries_${{ inputs.os }}_${{ inputs.architecture }}" >> $GITHUB_OUTPUT
+      shell: bash
+    

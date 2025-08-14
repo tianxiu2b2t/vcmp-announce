@@ -1,0 +1,52 @@
+name: Download Libraries
+description: Download Libraries
+
+inputs:
+  artifacts:
+    required: true
+    description: The name of the artifact to download
+  
+  output_target:
+    required: true
+    description: The target directory for the downloaded artifacts
+  
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifacts }}
+        path: ./tmp_libraries
+
+    - name: Process Artifacts
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.output_target }}
+
+        # 处理 Windows DLL 文件
+        if [[ ${{ inputs.artifacts }} =~ libraries_windows-latest_x64 ]]; then
+          for file in ./tmp_libraries/**/*.dll; do
+            cp "$file" "${{ inputs.output_target }}/pythonlink04rel64.dll"
+          done
+        elif [[ ${{ inputs.artifacts }} =~ libraries_windows-latest_x86 ]]; then
+          for file in ./tmp_libraries/**/*.dll; do
+            cp "$file" "${{ inputs.output_target }}/pythonlink04rel32.dll"
+          done
+        fi
+
+        # 处理 Linux SO 文件
+        if [[ ${{ inputs.artifacts }} =~ libraries_ubuntu-22.04_x64 ]]; then
+          for file in ./tmp_libraries/**/*.so; do
+            cp "$file" "${{ inputs.output_target }}/pythonlink04rel64.so"
+          done
+        elif [[ ${{ inputs.artifacts }} =~ libraries_ubuntu-22.04_x86 ]]; then
+          for file in ./tmp_libraries/**/*.so; do
+            cp "$file" "${{ inputs.output_target }}/pythonlink04rel32.so"
+          done
+        fi
+
+        # 清理下载目录
+        rm -rf ./tmp_libraries
+    

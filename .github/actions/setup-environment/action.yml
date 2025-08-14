@@ -1,0 +1,30 @@
+name: Setup Environment
+description: Setup build environment (Cargo)
+
+inputs:
+  architecture:
+    description: CPU architecture (x86 or x64)
+    required: false
+    default: "x64"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        
+    - name: Install x86 target for Rust (if needed)
+      if: inputs.architecture == 'x86'
+      run: |
+        if [[ $RUNNER_OS == "Windows" ]]; then
+          rustup target add i686-pc-windows-msvc
+        elif [[ $RUNNER_OS == "Linux" ]]; then
+          rustup target add i686-unknown-linux-gnu
+          # 安装32位系统库
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y libc6:i386 libstdc++6:i386
+        fi
+      shell: bash
+    
