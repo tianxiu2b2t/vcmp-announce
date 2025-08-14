@@ -14,24 +14,39 @@ runs:
       with:
         toolchain: stable
         
-    - name: Install x86 target for Rust (if needed)
+    - name: Install x86 target and dependencies (including SSL)
       if: inputs.architecture == 'x86'
       run: |
         if [[ $RUNNER_OS == "Windows" ]]; then
           rustup target add i686-pc-windows-msvc
+          # Windows x86的OpenSSL通常通过vcpkg或手动安装，这里假设使用静态链接
         elif [[ $RUNNER_OS == "Linux" ]]; then
           rustup target add i686-unknown-linux-gnu
-          # 安装32位系统库
+          
+          # 启用32位架构支持
           sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y libc6:i386 libstdc++6:i386
+          sudo apt-get update -y
+          
+          # 安装必要的32位系统库和SSL开发库
+          sudo apt-get install -y \
+            libc6:i386 \
+            libstdc++6:i386 \
+            libssl-dev:i386 \
+            zlib1g-dev:i386 \
+            pkg-config:i386
+            
+          # 确保pkg-config能找到32位库
+          export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig"
+          echo "PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig" >> $GITHUB_ENV
         fi
       shell: bash
 
-    - name: Install libssl-dev (if needed)
+    - name: Install x64 dependencies
+      if: inputs.architecture == 'x64'
       run: |
         if [[ $RUNNER_OS == "Linux" ]]; then
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev
+          sudo apt-get update -y
+          sudo apt-get install -y libssl-dev zlib1g-dev
         fi
       shell: bash
+    
